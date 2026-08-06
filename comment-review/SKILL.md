@@ -1,6 +1,6 @@
 ---
 name: comment-review
-description: Reviews existing code comments against the "Comments" rules in the user's active "I'm only human" output style (falling back to a bundled copy of those rules if the user has none configured) and decides, per comment, whether to leave it, remove it, or reword/split it. Scope can be a single function, one or more files, or a whole directory, optionally narrowed to comments touched within a timespan or by an author (via git blame). Use this whenever the user asks to review, audit, clean up, or tighten comments — "review the comments in X", "are these comments any good", "clean up the comments Alice added last week", "does this file have any dead-weight comments" — not for reviewing code logic, correctness, or design (use /code-review or /deep-review for that).
+description: Reviews existing code comments against the "Comments" rules in the user's active "I'm only human" output style (falling back to a bundled copy of those rules if the user has none configured) and decides, per comment, whether to leave it, remove it, or reword/split it. Scope can be a single function, one or more files, or a whole directory, optionally narrowed to comments touched within a timespan or by an author (via git blame). Use this whenever the user asks to review, audit, clean up, or tighten comments — "review the comments in X", "are these comments any good", "clean up the comments Alice added last week", "does this file have any dead-weight comments" — not for reviewing code logic, correctness, or design.
 ---
 
 # Comment review
@@ -9,18 +9,26 @@ This skill judges *existing* comments, one at a time, against the rules the
 user has written down for what a good comment looks like. It does not review
 logic, naming, or design. It only reviews comments.
 
+`<skill-dir>` below means the directory holding this SKILL.md. Some
+harnesses expose it as an environment variable, such as
+`CLAUDE_SKILL_DIR`. Otherwise resolve it from wherever you read this file.
+
 Read the rules fresh every run. Don't trust anything memorized about them.
-Use `~/.claude/output-styles/im-only-human.md` if it exists. Otherwise use
-the bundled copy at
-`${CLAUDE_SKILL_DIR}/references/im-only-human-comments-style.md`. Either
-file can change between runs, and a stale copy of the rules would silently
-drift from what they actually say.
+Use the first of these that exists:
+
+1. `~/.agents/im-only-human.md`
+2. `~/.claude/output-styles/im-only-human.md`
+3. `<skill-dir>/references/im-only-human-comments-style.md` (bundled)
+
+Any of them can change between runs, and a stale copy of the rules would
+silently drift from what they actually say.
 
 Recommended companion: the
-["I'm only human"](https://github.com/AlCalzone/im-only-human) output
-style. Installing it applies the same rules to everyday answers and
-prose, on top of what this skill already checks in comments. This skill
-still works from the bundled copy above without it.
+["I'm only human"](https://github.com/AlCalzone/im-only-human) rules,
+installed as your global instructions or as an output style. That applies
+the same rules to everyday answers and prose, on top of what this skill
+already checks in comments. This skill still works from the bundled copy
+above without it.
 
 ## Phase 0 — Resolve scope and any filter
 
@@ -39,14 +47,18 @@ Run the bundled finder to locate every comment block in scope. This avoids
 re-deriving comment boundaries and blame info by hand each time:
 
 ```
-python3 ${CLAUDE_SKILL_DIR}/scripts/find_comments.py <path>... \
+python3 <skill-dir>/scripts/find_comments.py <path>... \
   [--function NAME] [--since YYYY-MM-DD] [--until YYYY-MM-DD] [--author PATTERN]
 ```
 
 It prints a JSON array of comment blocks with file, line range, text, blame
-author/date, and a few lines of surrounding code for context. Read
-`${CLAUDE_SKILL_DIR}/scripts/find_comments.py --help` if you need the exact
-flags again. Don't re-derive them from memory.
+author/date, and a few lines of surrounding code for context. Run it with
+`--help` if you need the exact flags again. Don't re-derive them from
+memory.
+
+Without a shell to run it in, read the files in scope directly and locate
+the comment blocks yourself. Blame-based filters need `git blame`, so a
+timespan or author filter isn't available that way.
 
 This is a line-marker scan, not a real parser. String-embedded `//`, `#`, or
 `<!--` inside a URL, a regex, or an HTML string can trip it up. Skim its
@@ -56,31 +68,33 @@ stop. Don't invent findings.
 
 ## Phase 1 — Load the current rules
 
-Read `~/.claude/output-styles/im-only-human.md` in full if it exists. If
-it doesn't, read
-`${CLAUDE_SKILL_DIR}/references/im-only-human-comments-style.md` instead.
-The `## Comments` section is the authoritative rule set. The file's
-opening paragraph sets tone and audience, and the `## Plain language`
-section informs borderline calls. Don't paraphrase from memory. The
-wording of a rule, like what counts as "X, not Y" framing, matters for
-applying it consistently.
+Read the first file that exists from the lookup chain at the top of this
+skill, in full. The `## Comments` section is the authoritative rule set.
+The file's opening paragraph sets tone and audience, and the
+`## Plain language` section informs borderline calls. Don't paraphrase
+from memory. The wording of a rule, like what counts as "X, not Y"
+framing, matters for applying it consistently.
 
 ## Phase 2 — Judge each comment
 
 For a single function or a small handful of files, do this yourself, inline,
 reading the files directly. No need for subagents on a small scope.
 
-For a whole directory or many files, fan out. Use one `Agent` call per file,
-or a small batch of files that together hold few comments, running in
-parallel. Give each agent the full text of the Comments section from
-Phase 1, its assigned slice of the `find_comments.py` output, and
-instructions to return one verdict per comment. Each agent needs
-`Bash`/`Grep` on the repo, not just its own file, for the consistency check
-below. A comment can only be judged "generic knowledge" by checking
-whether comparable code elsewhere actually lacks the same kind of comment.
-Collect every agent's verdicts into one list before moving on. Don't
-present findings file-by-file as agents finish. The consistency check for
-one file can depend on what another file's agent finds.
+For a whole directory or many files, fan out across parallel subagents if
+this harness has them. Give each one file, or a small batch of files that
+together hold few comments. Each subagent needs the full text of the
+Comments section from Phase 1, its assigned slice of the
+`find_comments.py` output, and instructions to return one verdict per
+comment. It also needs search access to the whole repo, not just its own
+file, for the consistency check below. A comment can only be judged
+"generic knowledge" by checking whether comparable code elsewhere actually
+lacks the same kind of comment. Collect every subagent's verdicts into one
+list before moving on. Don't present findings file-by-file as they finish.
+The consistency check for one file can depend on what another file's
+subagent finds.
+
+Without subagents, work through the files yourself in the same order, one
+at a time, and hold every verdict until the whole scope is judged.
 
 Before the full checklist, make one fast first pass over every comment.
 Check only redundancy (question 1) and mood (question 6). Both are cheap,
