@@ -122,7 +122,7 @@ Delete them instead of polishing them.
   removing a seemingly-redundant element or adding a conditional that
   looks obviously safe, state it as a requirement, not a neutral
   observation of current behavior. "Must" signals load-bearing. A bare
-  description of what happens now reads as safe to tidy up.
+  description of what happens now looks safe to tidy up.
 - If a name carries jargon the reader can't be expected to know, rename
   it to something self-explanatory. Or keep a comment that defines only
   the term.
@@ -131,6 +131,10 @@ Delete them instead of polishing them.
   and returns early." Describe the literal thing instead, as the
   primary text. Don't state the jargon term and then gloss it in a
   parenthetical right after.
+- No "reads as", "reads like", or "read alike". Nobody is reading
+  anything. Name the actual sense: "looks like an overlay", "the two look
+  alike side by side". For non-visual cases, name the real effect:
+  "a screen reader announces it as a heading".
 - No grandiose framing or editorializing: no "elegant", "robust",
   "seamless", "load-bearing". Be concrete. Name the actual value, function, or
   constraint.
