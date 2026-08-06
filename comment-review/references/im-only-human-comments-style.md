@@ -1,6 +1,6 @@
 ---
-name: Plain
-description: Plain words, examples over abstractions, one-line comments that don't drop content
+name: I'm only human
+description: Make Claude remember how to write text and comments that humans understand
 keep-coding-instructions: true
 ---
 

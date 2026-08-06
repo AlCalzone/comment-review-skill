@@ -1,6 +1,6 @@
 ---
 name: comment-review
-description: Reviews existing code comments against the "Comments" rules in the user's active Plain output style (falling back to a bundled copy of those rules if the user has none configured) and decides, per comment, whether to leave it, remove it, or reword/split it. Scope can be a single function, one or more files, or a whole directory, optionally narrowed to comments touched within a timespan or by an author (via git blame). Use this whenever the user asks to review, audit, clean up, or tighten comments — "review the comments in X", "are these comments any good", "clean up the comments Alice added last week", "does this file have any dead-weight comments" — not for reviewing code logic, correctness, or design (use /code-review or /deep-review for that).
+description: Reviews existing code comments against the "Comments" rules in the user's active "I'm only human" output style (falling back to a bundled copy of those rules if the user has none configured) and decides, per comment, whether to leave it, remove it, or reword/split it. Scope can be a single function, one or more files, or a whole directory, optionally narrowed to comments touched within a timespan or by an author (via git blame). Use this whenever the user asks to review, audit, clean up, or tighten comments — "review the comments in X", "are these comments any good", "clean up the comments Alice added last week", "does this file have any dead-weight comments" — not for reviewing code logic, correctness, or design (use /code-review or /deep-review for that).
 ---
 
 # Comment review
@@ -10,10 +10,17 @@ user has written down for what a good comment looks like. It does not review
 logic, naming, or design. It only reviews comments.
 
 Read the rules fresh every run. Don't trust anything memorized about them.
-Use `~/.claude/output-styles/plain.md` if it exists. Otherwise use the
-bundled copy at `${CLAUDE_SKILL_DIR}/references/plain-comments-style.md`.
-Either file can change between runs, and a stale copy of the rules would
-silently drift from what they actually say.
+Use `~/.claude/output-styles/im-only-human.md` if it exists. Otherwise use
+the bundled copy at
+`${CLAUDE_SKILL_DIR}/references/im-only-human-comments-style.md`. Either
+file can change between runs, and a stale copy of the rules would silently
+drift from what they actually say.
+
+Recommended companion: the
+["I'm only human"](https://github.com/AlCalzone/im-only-human) output
+style. Installing it applies the same rules to everyday answers and
+prose, on top of what this skill already checks in comments. This skill
+still works from the bundled copy above without it.
 
 ## Phase 0 — Resolve scope and any filter
 
@@ -49,12 +56,13 @@ stop. Don't invent findings.
 
 ## Phase 1 — Load the current rules
 
-Read `~/.claude/output-styles/plain.md` in full if it exists. If it
-doesn't, read `${CLAUDE_SKILL_DIR}/references/plain-comments-style.md`
-instead. The `## Comments` section is the authoritative rule set. The
-file's opening paragraph sets tone and audience, and the `## Plain
-language` section informs borderline calls. Don't paraphrase from memory.
-The wording of a rule, like what counts as "X, not Y" framing, matters for
+Read `~/.claude/output-styles/im-only-human.md` in full if it exists. If
+it doesn't, read
+`${CLAUDE_SKILL_DIR}/references/im-only-human-comments-style.md` instead.
+The `## Comments` section is the authoritative rule set. The file's
+opening paragraph sets tone and audience, and the `## Plain language`
+section informs borderline calls. Don't paraphrase from memory. The
+wording of a rule, like what counts as "X, not Y" framing, matters for
 applying it consistently.
 
 ## Phase 2 — Judge each comment
@@ -82,18 +90,19 @@ getting lost once attention moves to chaining, jargon, and placement.
 Redundancy here means restating the *one specific line* right next to it:
 a prop name and type, the very next `v-if`, a selector. It's not the same
 thing as summarizing a multi-line block. That's a navigation bookmark
-instead. See plain.md's bookmark exception and its bookmark-vs-redundant
-test. Apply that test here before marking anything redundant just because
-it sits above a block.
+instead. See the rules file's bookmark exception and its
+bookmark-vs-redundant test. Apply that test here before marking anything
+redundant just because it sits above a block.
 
 Apply the rest of the checklist to what's left, and to what this pass
 already caught. A mood-fixed comment can still need a chaining or jargon
 fix too.
 
 For every remaining comment, walk through these questions in order. They're
-the condensed form of the Comments-section rules in plain.md. That file
-holds the full reasoning and examples for each one. Don't re-derive from
-memory. These numbers exist to make the judgment read as one pass, saving
+the condensed form of the Comments-section rules in the rules file loaded
+in Phase 1. That file holds the full reasoning and examples for each one.
+Don't re-derive from memory. These numbers exist to make the judgment
+read as one pass, saving
 you from re-deriving that reasoning each time:
 
 1. Would deleting it lose a fact the code can't otherwise show? Check

@@ -30,8 +30,10 @@ cp -r comment-review-skill/comment-review ~/.claude/skills/
 
 Review one function, one or more files, or a whole directory. Narrow the scope to comments touched in a timespan or by an author, using git blame: "the comments Alice added last week."
 
-The skill reports every finding first. It asks before applying anything.
+A plain cleanup request gets fixed autonomously, then reported. Say "just give me the report" for a report-only pass, or "let's go through them" to confirm each change one at a time. After anything gets applied, the skill asks whether to leave it staged or commit and push.
 
 ## Rules
 
-The skill judges comments against a bundled copy of the ["Plain" output style](comment-review/references/plain-comments-style.md)'s Comments section. Drop your own copy at `~/.claude/output-styles/plain.md` to override this. Then you can tune the rules without editing the skill itself.
+The skill judges comments against a bundled copy of the ["I'm only human"](comment-review/references/im-only-human-comments-style.md) output style's Comments section. Drop your own copy at `~/.claude/output-styles/im-only-human.md` to override this, and tune the rules without editing the skill itself.
+
+Recommended companion: install [im-only-human](https://github.com/AlCalzone/im-only-human) as your output style. It applies the same rules to everyday answers and prose, on top of what this skill checks in comments.
