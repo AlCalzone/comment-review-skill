@@ -1,6 +1,6 @@
 # comment-review
 
-A Claude Code skill that reviews existing code comments and judges each one: leave it, remove it, or reword it.
+A portable agent skill that reviews existing code comments and judges each one: leave it, remove it, or reword it.
 
 ## Example
 
@@ -19,11 +19,18 @@ A Claude Code skill that reviews existing code comments and judges each one: lea
 
 ## Install
 
-Copy the `comment-review` folder into `~/.claude/skills/` for personal use across every project. Or copy it into `<repo>/.claude/skills/` to scope it to one project.
+Copy the `comment-review` folder into your agent's skills directory — `~/.claude/skills/` for Claude Code, for personal use across every project. Or copy it into `<repo>/.claude/skills/` to scope it to one project.
 
 ```bash
 git clone https://github.com/AlCalzone/comment-review-skill.git
 cp -r comment-review-skill/comment-review ~/.claude/skills/
+```
+
+To share one copy between several agents, keep it in `~/.agents/skills/` and symlink it into each agent's skills directory:
+
+```bash
+cp -r comment-review-skill/comment-review ~/.agents/skills/
+ln -s ~/.agents/skills/comment-review ~/.claude/skills/comment-review
 ```
 
 ## Scope
@@ -34,6 +41,10 @@ A plain cleanup request gets fixed autonomously, then reported. Say "just give m
 
 ## Rules
 
-The skill judges comments against a bundled copy of the ["I'm only human"](comment-review/references/im-only-human-comments-style.md) output style's Comments section. Drop your own copy at `~/.claude/output-styles/im-only-human.md` to override this, and tune the rules without editing the skill itself.
+The skill judges comments against a bundled copy of the ["I'm only human"](comment-review/references/im-only-human-comments-style.md) rules' Comments section. Override it with your own copy, and tune the rules without editing the skill itself. The first of these that exists wins:
 
-Recommended companion: install [im-only-human](https://github.com/AlCalzone/im-only-human) as your output style. It applies the same rules to everyday answers and prose, on top of what this skill checks in comments.
+1. `~/.agents/im-only-human.md`
+2. `~/.claude/output-styles/im-only-human.md`
+3. the bundled copy
+
+Recommended companion: install [im-only-human](https://github.com/AlCalzone/im-only-human) as your global instructions or output style. It applies the same rules to everyday answers and prose, on top of what this skill checks in comments.

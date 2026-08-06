@@ -19,7 +19,7 @@ Output: a JSON array on stdout, one object per comment block:
 
 This only finds comment *locations* and raw text — it does not judge them.
 That judgment (leave / remove / reword) is the caller's job, applying the
-rules in the active Plain output style.
+rules in the active "I'm only human" comment style.
 
 Comment-block detection is a per-line marker scan, not a real parser, so it
 can misfire on a comment marker that appears inside a string literal. Skim
