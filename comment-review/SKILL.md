@@ -125,7 +125,7 @@ you from re-deriving that reasoning each time:
 10. Jargon, or an idiom that doesn't map to the literal action?
 11. Mechanical nits: capitalization, trailing period, NOT/NONE emphasis,
     right marker. If this is the *only* issue, file it under `[NIT]`
-    (Phase 3) instead of its own `[REWORD]`. If it rides along with a
+    (Phase 4) instead of its own `[REWORD]`. If it rides along with a
     substantive fix, fold it into that `[REWORD]` instead.
 12. Redundant with an adjacent comment, or with code right next to it?
     This includes a "why" clause on its own that states nothing beyond
@@ -170,28 +170,50 @@ gets "leave as is" and doesn't need a novel justification. Most real
 codebases have plenty of those, and the report should reflect that rather
 than manufacture nitpicks.
 
-## Phase 3 — Report
+## Phase 3 — Decide how to proceed
+
+Figure out the mode before doing anything else with the findings:
+
+- **Report only** — show every finding, apply nothing.
+- **Step by step** — walk through each finding for confirmation, applying
+  as you go.
+- **Fix autonomously** — apply every finding now, without asking about
+  each one first.
+
+Infer the mode from the user's request whenever it's already clear. "Just
+give me the report" or "don't apply anything yet" means report only.
+"Let's go through them" or "one at a time" means step by step. A plain
+cleanup request with no qualifier, like "clean up the comments in X",
+means fix autonomously. That's the default. A routine cleanup shouldn't
+need a stop-and-ask round trip. Ask, in one question, only when the
+request genuinely leaves open whether they want changes applied at all.
+
+## Phase 4 — Report and apply
 
 Reports commonly get read in a plain-text viewer or terminal that doesn't
 render markdown. Free-form prose paragraphs turn into a wall of text
-that's hard to scan or grep there. Use this fixed, tagged shape instead,
-one block per file:
+that's hard to scan or grep there. Use this fixed, tagged shape, one block
+per file:
 
 ```
 ## <relative/path/to/file>
 
 [REMOVE] <line>-<line>
   <current text>
+  code: <the line(s) the comment sits next to, enough to judge the call>
   why: <one line>
 
 [REWORD] <line>-<line>
   - <current text, one line per source line>
   + <replacement text, one line per source line>
+  code: <the line(s) the comment sits next to, enough to judge the call>
   why: <one line>
 
 [MOVE] <line>-<line> -> <new location>
   - <current text>
   + <replacement text, at the new location>
+  from: <code at the original location>
+  to: <code at the new location>
   why: <one line>
 
 [NIT] <line>: <trailing period | capitalize first word | NOT/NONE emphasis | wrong marker>
@@ -207,47 +229,52 @@ line and a note on where it goes. This lets a reader `grep` by verdict or by
 file/line instead of parsing prose. Skip "leave as is" comments
 individually. End each file's block with a single count instead.
 
+Always include enough code for the reader to judge the finding without
+opening the file themselves. A `[REMOVE]` for a comment that only
+restates a function signature needs that signature shown alongside it. A
+`[MOVE]` needs the code at both the old and the new location. Judging a
+move means seeing what it's leaving and what it's landing next to. Keep
+the snippet to the smallest set of lines that makes the call obvious. A
+full function isn't needed when one line answers it.
+
 `[NIT]` entries are for comments whose only flaw is mechanical, per
 checklist item 11. Skip the `why` and the before/after block. Just give
 the location and which nit, one line each. Don't give these the same
 weight as a `[REMOVE]`/`[REWORD]`: they don't change what the comment
 says, and a reader shouldn't have to wade through a page of "drop the
-period" lines to
-find the fixes that do. If a file's nits are all the same kind, condense
-further to one line: "[NIT] lines 291, 294, 298, 335: trailing period."
+period" lines to find the fixes that do. If a file's nits are all the same
+kind, condense further to one line: "[NIT] lines 291, 294, 298, 335:
+trailing period." `[NIT]` entries apply directly in every mode. They
+don't need the user's review.
 
 End the whole report with a one-line grand total: "N reviewed: N reworded,
 N removed, N left as is, N mechanical-only nits."
 
-## Phase 4 — Ask how to proceed
+How this plays out depends on the mode from Phase 3:
 
-`[NIT]` entries never go through this step. They don't need the user's
-review. Apply them directly in Phase 5, regardless of which mode is
-chosen below. This question is only about the `[REMOVE]`/`[REWORD]`/`[MOVE]`
-entries.
+- **Report only**: produce the report above and stop. Don't touch any
+  file.
+- **Step by step**: present each `[REMOVE]`/`[REWORD]`/`[MOVE]` entry one
+  at a time, the way a human reviewer would go comment by comment. Revise,
+  skip, or confirm each, applying it immediately once confirmed.
+- **Fix autonomously**: apply every `[REMOVE]`/`[REWORD]`/`[MOVE]` directly
+  first. Then produce the report above, describing what changed rather
+  than what's proposed.
 
-Don't apply anything yet. Ask the user, in one question:
+Whichever mode applies anything: check whether the project has a lint or
+typecheck script, in `package.json` or a `Makefile`, and run it as a
+sanity check that nothing was mangled. These are comment-only edits, but a
+botched removal can still break a block comment's open/close pairing.
+Surface a failure and stop rather than moving on to Phase 5 with broken
+code.
 
-- **Step by step** — walk through each change for confirmation, the way a
-  human reviewer would go comment by comment: revise, skip, or confirm
-  each, applying as you go.
-- **Apply everything now** — make all the reword/remove edits directly,
-  then ask whether to also stage, commit, and/or push. Offer these as one
-  follow-up, not three separate ones. A commit message should describe the
-  comment cleanup, not restate every individual change.
+## Phase 5 — Stage, commit, or leave as is
 
-If the user's original request already made this clear, skip asking and
-proceed. "Clean these up and commit" implies apply-everything. "Let's go
-through them" implies step by step. Don't force a redundant confirmation
-when the answer is already in what they said.
+Skip this phase entirely in report-only mode. Nothing was touched.
 
-## Phase 5 — Apply
-
-Whichever mode: edit what was reworded or marked for removal, plus every
-`[NIT]` regardless of mode. Check whether the project has a lint or
-typecheck script, in `package.json` or a `Makefile`, and run it as a sanity
-check that nothing was mangled. These are comment-only edits, but a botched
-removal can still break a block comment's open/close pairing. In
-apply-everything mode, only proceed to stage/commit/push if that check
-passes, or none exists. Surface a failure and stop rather than committing
-broken code.
+Once the lint/typecheck check in Phase 4 passes, or none exists, stage
+every file that was changed. Ask one question: leave the changes staged,
+or commit and push? A commit message should describe the comment cleanup,
+not restate every individual change. If the user's original request
+already answered this, like "clean these up and push", skip asking and
+follow that instead.
